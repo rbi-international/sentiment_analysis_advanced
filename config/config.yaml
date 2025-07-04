@@ -1,0 +1,21 @@
+paths:
+  raw_data: "data/raw/training.1600000.processed.noemoticon.csv"
+  processed_data: "data/processed/processed_data.csv"
+  features_data: "data/features/encoded_features.pt"
+  model_dir: "models/checkpoints"
+  tokenizer_dir: "models/tokenizer"
+  test_data: "data/raw/testdata.manual.2009.06.14.csv"
+
+training:
+  model_name: "distilbert-base-uncased"
+  max_length: 128
+  batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-5
+  epochs: 2
+  device: "cuda"
+
+
+logging:
+  log_file: "logs/pipeline.log"
+  log_level: "INFO"

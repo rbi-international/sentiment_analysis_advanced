@@ -65,6 +65,10 @@ db.sqlite3-journal
 instance/
 .webassets-cache
 
+# Data folder
+data/raw/training.1600000.processed.noemoticon.csv
+D:/Sentiment_Analysis_advanced/sentiment_analysis_advanced/data
+
 # Scrapy stuff:
 .scrapy
 
