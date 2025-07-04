@@ -96,11 +96,14 @@ Device: CUDA (RTX 3060)
 
 ## 🚀 **Complete Training & Deployment Pipeline**
 
-### **📋 Prerequisites**
-- Python 3.8+
-- CUDA-compatible GPU (RTX 3060 or better recommended)
-- 8GB+ RAM
-- ~20GB free disk space for dataset and models
+### **📋 System Requirements**
+- **Python Version:** 3.13.2
+- **RAM:** 16GB (recommended for smooth processing)
+- **GPU:** NVIDIA GeForce RTX 3060 6GB VRAM
+- **Storage:** ~20GB free disk space for dataset and models
+- **OS:** Windows/Linux/macOS with CUDA support
+
+> **⚠️ Hardware Note:** This project was specifically tested and optimized for RTX 3060 with 6GB VRAM. Training took approximately 8 hours for 2 epochs on this setup.
 
 ### **🔧 Environment Setup**
 ```bash
@@ -108,7 +111,7 @@ Device: CUDA (RTX 3060)
 git clone <repository-url>
 cd sentiment_analysis_advanced
 
-# Create virtual environment
+# Create virtual environment (Python 3.13.2)
 python -m venv llmapp_latest
 source llmapp_latest/bin/activate  # Linux/Mac
 # or llmapp_latest\Scripts\activate  # Windows
@@ -144,9 +147,11 @@ HUGGINGFACE_TOKEN=your_hf_token_here
 
 ---
 
-## 🔄 **Step-by-Step Training Pipeline**
+## 🔄 **MANDATORY Step-by-Step Execution Pipeline**
 
-### **Step 1: 🧹 Data Preprocessing**
+### **🚨 IMPORTANT: Run ALL files in this EXACT order**
+
+#### **Step 1: 🧹 Data Preprocessing (REQUIRED)**
 ```bash
 python scripts/data_preprocessing.py
 ```
@@ -156,6 +161,7 @@ python scripts/data_preprocessing.py
 - Cleans text data and removes invalid entries
 - Saves processed data to `data/processed/processed_data.csv`
 - **Expected runtime:** 2-3 minutes
+- **Memory usage:** ~2GB RAM
 
 **✅ Success indicators:**
 ```
@@ -166,7 +172,7 @@ python scripts/data_preprocessing.py
 
 ---
 
-### **Step 2: 🔤 Feature Extraction**
+#### **Step 2: 🔤 Feature Extraction (REQUIRED)**
 ```bash
 python scripts/feature_extraction.py
 ```
@@ -176,6 +182,7 @@ python scripts/feature_extraction.py
 - Processes data in batches to handle memory efficiently
 - Saves tokenized features to `data/features/encoded_features.pt`
 - **Expected runtime:** 15-20 minutes
+- **Memory usage:** ~8GB RAM peak
 
 **✅ Success indicators:**
 ```
@@ -187,121 +194,54 @@ python scripts/feature_extraction.py
 
 ---
 
-### **Step 3: 🏗️ Tokenizer Setup (If Required)**
-
-If you encounter "tokenizer not found" errors, run this script:
-
-```python
-# scripts/setup_tokenizer.py - Create this file
-import os
-from pathlib import Path
-from transformers import AutoTokenizer
-from utils.config_loader import load_config
-from logutils.logger import get_logger
-
-logger = get_logger("tokenizer_setup")
-
-def setup_tokenizer():
-    try:
-        config = load_config()
-        model_name = config["training"]["model_name"]
-        tokenizer_dir = Path(config["paths"]["tokenizer_dir"])
-        
-        logger.info(f"🔧 Setting up tokenizer: {model_name}")
-        
-        # Create tokenizer directory
-        os.makedirs(tokenizer_dir, exist_ok=True)
-        
-        # Download and save tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        tokenizer.save_pretrained(tokenizer_dir)
-        
-        logger.info(f"✅ Tokenizer saved to: {tokenizer_dir}")
-        
-    except Exception as e:
-        logger.exception(f"❌ Tokenizer setup failed: {e}")
-
-if __name__ == "__main__":
-    setup_tokenizer()
-```
-
-**Run tokenizer setup:**
-```bash
-python scripts/setup_tokenizer.py
-```
-
----
-
-### **Step 4: 🤖 Model Training**
+#### **Step 3: 🤖 Model Training (MAIN STEP)**
 ```bash
 python scripts/train.py
 ```
-**What it does:**
-- Loads tokenized features from Step 2
-- Initializes DistilBERT model for sequence classification
-- Trains for 2 epochs with mixed precision (AMP)
-- Saves model checkpoints after each epoch
-- **Expected runtime:** 6-8 hours on RTX 3060
+
+**🚨 IF TOKENIZER ISSUE OCCURS:**
+If you encounter "tokenizer not found" error, STOP and run:
+```bash
+python scripts/setup_tokenizer.py
+```
+**Then restart training:**
+```bash
+python scripts/train.py
+```
+
+**Training Details:**
+- **Hardware:** RTX 3060 6GB VRAM, 16GB RAM, Python 3.13.2
+- **Duration:** ~8 hours for 2 epochs
+- **Model:** DistilBERT-base-uncased (66M parameters)
+- **Memory usage:** ~5.5GB VRAM, ~12GB RAM
+- **Optimization:** Mixed precision (AMP) + gradient accumulation
 
 **⚙️ Training Configuration:**
-- **Model:** DistilBERT-base-uncased (66M parameters)
-- **Batch Size:** 8 (effective 32 with gradient accumulation)
-- **Learning Rate:** 2e-5
-- **Epochs:** 2
-- **Optimization:** AdamW + Linear warmup scheduler
-- **Mixed Precision:** Enabled for memory efficiency
+```yaml
+Model: distilbert-base-uncased
+Epochs: 2 (limited by 8-hour constraint)
+Batch Size: 8 (effective 32 with gradient accumulation)
+Learning Rate: 2e-5
+Mixed Precision: Enabled
+Device: CUDA (RTX 3060)
+```
 
 **✅ Success indicators:**
 ```
 💻 Using device: cuda
 🧠 Model: distilbert-base-uncased | Epochs: 2 | Batch size: 8
 🔁 Starting Epoch 1/2
-📉 Epoch 1 completed. Avg Loss: 0.421 | Time: 4.2 hours
+📉 Epoch 1 completed. Avg Loss: 0.421 | Time: ~4 hours
 💾 Checkpoint saved at: models/checkpoints/epoch_1
 🔁 Starting Epoch 2/2
-📉 Epoch 2 completed. Avg Loss: 0.285 | Time: 3.8 hours
+📉 Epoch 2 completed. Avg Loss: 0.285 | Time: ~4 hours
 💾 Checkpoint saved at: models/checkpoints/epoch_2
 ✅ Training completed successfully!
 ```
 
-**📁 Output Structure:**
-```
-models/
-├── checkpoints/
-│   ├── epoch_1/          # First epoch checkpoint
-│   │   ├── config.json
-│   │   ├── pytorch_model.bin
-│   │   └── tokenizer files...
-│   └── epoch_2/          # Final model (used for inference)
-│       ├── config.json
-│       ├── pytorch_model.bin
-│       └── tokenizer files...
-```
-
 ---
 
-### **Step 5: 📊 Model Evaluation**
-```bash
-python scripts/evaluate.py
-```
-**What it does:**
-- Loads the trained model from `epoch_2`
-- Evaluates on Stanford test dataset (359 manually annotated samples)
-- Computes accuracy, precision, recall, and F1-score
-- **Expected runtime:** 2-3 minutes
-
-**✅ Expected Results:**
-```
-✅ Evaluation Results:
-🎯 Accuracy: 0.7850
-🎯 Precision: 0.7920
-🎯 Recall: 0.7780
-🎯 F1 Score: 0.7850
-```
-
----
-
-### **Step 6: 🚀 Launch Web Application**
+#### **Step 4: 🚀 Inference/Web Application**
 ```bash
 streamlit run app.py
 ```
@@ -309,6 +249,8 @@ streamlit run app.py
 - Loads the trained model from `models/checkpoints/epoch_2`
 - Starts interactive web interface on `http://localhost:8501`
 - Provides real-time sentiment analysis with AI explanations
+- **Expected startup:** 30-60 seconds
+- **Memory usage:** ~3GB VRAM, ~4GB RAM
 
 **🌐 Web Interface Features:**
 - **Single Text Analysis:** Real-time predictions with confidence scores
@@ -316,6 +258,34 @@ streamlit run app.py
 - **AI Explanations:** Powered by Euriai API
 - **Word Clouds:** Visual representation of sentiment patterns
 - **Results Download:** Export predictions as CSV
+
+---
+
+## 🖥️ **Hardware Specifications & Performance**
+
+### **My System Configuration:**
+- **CPU:** Intel/AMD (any modern processor)
+- **RAM:** 16GB DDR4 (recommended minimum: 12GB)
+- **GPU:** NVIDIA GeForce RTX 3060 6GB VRAM
+- **Python:** 3.13.2
+- **CUDA:** 12.9 (with Driver 576.52)
+- **Storage:** SSD recommended for faster data loading
+
+### **Training Performance Metrics:**
+- **Total Training Time:** ~8 hours for 2 epochs
+- **Samples per Second:** ~200-300 during training
+- **Memory Usage:** 5.5GB VRAM (out of 6GB), 12GB RAM (out of 16GB)
+- **GPU Utilization:** 95-99% during training
+- **Final Model Accuracy:** 78.5% on test set
+
+### **Hardware Optimization for RTX 3060:**
+```yaml
+# Optimized configuration for 6GB VRAM
+batch_size: 8                    # Maximum for 6GB VRAM
+gradient_accumulation_steps: 4   # Effective batch size: 32
+mixed_precision: true            # Saves ~40% memory
+max_length: 128                  # Optimal for sentiment analysis
+```
 
 ---
 
@@ -587,7 +557,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Rohit Bharti**
 - GitHub: [@rohit-bharti]
 - Email: rohit.bharti8211@gmail.com
-- LinkedIn: [Connect with me]
+- LinkedIn: [https://www.linkedin.com/in/rohitbharti13/]
 
 ---
 
